@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection AI | Real-Time NLP Tone Classifier</title>
+    <meta name="description" content="State-of-the-art NLP Emotion Classifier built with Flask, TF-IDF, and Logistic Regression. Classify text tone into Anger, Fear, Joy, Love, Sadness, and Surprise.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Ambient Background Dynamic Glow Orbs -->
+    <div class="ambient-glow" id="ambientGlow"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="app-container">
+        <!-- Header Navbar -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-icon">🎭</div>
+                <div class="brand-text">
+                    <span class="brand-title">EMOTION<span class="highlight">.AI</span></span>
+                    <span class="brand-subtitle">NLP Tone Intelligence</span>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <div class="status-pill" id="statusPill">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Model Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="main-grid">
+
+            <!-- Left Column: Input Panel -->
+            <section class="card input-card">
+                <div class="card-header">
+                    <h2>Input Text Analysis</h2>
+                    <span class="badge">NLP Pipeline</span>
+                </div>
+                <p class="card-subtitle">Type any sentence or paragraph to classify emotional tone across 6 primary dimensions.</p>
+
+                <div class="textarea-wrapper">
+                    <textarea 
+                        id="textInput" 
+                        placeholder="Type something emotional here... (e.g., 'I am so excited and happy to launch this new web app today!')" 
+                        maxlength="500"
+                        rows="4"
+                    ></textarea>
+                    <div class="textarea-footer">
+                        <span class="char-count" id="charCounter">0 / 500</span>
+                        <button class="clear-btn" id="clearBtn">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Sample Chips -->
+                <div class="samples-section">
+                    <div class="samples-label">⚡ Try Quick Sample Prompts:</div>
+                    <div class="chips-container" id="samplesContainer">
+                        <!-- Chips loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="submit-btn" id="analyzeBtn">
+                    <span class="btn-icon">🔮</span>
+                    <span class="btn-text">Analyze Emotion</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </section>
+
+            <!-- Right Column: Results Dashboard -->
+            <section class="card results-card" id="resultsCard">
+                <!-- Initial Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">✨</div>
+                    <h3>Ready for Analysis</h3>
+                    <p>Enter text on the left or select a prompt chip to inspect real-time emotion probability distributions.</p>
+                </div>
+
+                <!-- Loading Skeleton state -->
+                <div class="loading-state hidden" id="loadingState">
+                    <div class="spinner"></div>
+                    <p>Processing text through TF-IDF Vectorizer & Logistic Model...</p>
+                </div>
+
+                <!-- Actual Results Section -->
+                <div class="results-content hidden" id="resultsContent">
+                    
+                    <!-- Hero Top Emotion Display -->
+                    <div class="top-emotion-banner" id="topEmotionBanner">
+                        <div class="emoji-container" id="heroEmoji">🎭</div>
+                        <div class="top-emotion-info">
+                            <span class="top-label">Dominant Emotion Detected</span>
+                            <h2 class="top-title" id="heroEmotionName">Joy</h2>
+                            <p class="top-description" id="heroEmotionDesc">High energy, excitement, and happiness.</p>
+                        </div>
+                        <div class="confidence-badge" id="heroConfidence">
+                            <span class="confidence-val" id="heroConfidenceVal">94.8%</span>
+                            <span class="confidence-lbl">Confidence</span>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Probability Breakdown Bars -->
+                    <div class="breakdown-section">
+                        <div class="section-title">
+                            <h3>Full Probability Spectrum</h3>
+                            <span class="badge-mini">6 Classes</span>
+                        </div>
+                        <div class="bars-container" id="barsContainer">
+                            <!-- Dynamically populated bars -->
+                        </div>
+                    </div>                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Emotion Classifier ML Project &bull; Built with <strong>Flask</strong>, <strong>scikit-learn</strong>, and <strong>Vanilla CSS Glassmorphism</strong>.</p>
+        </footer>
+    </div>
+
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

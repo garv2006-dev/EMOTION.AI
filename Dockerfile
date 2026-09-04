@@ -9,8 +9,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Hugging Face Spaces exposes port 7860
-EXPOSE 7860
+# Expose Flask web server port
+EXPOSE 5000
 
-# Run Gradio application
+# Set Environment variables
+ENV PORT=5000
+ENV PYTHONUNBUFFERED=1
+
+# Run Flask application
 CMD ["python", "app.py"]
