@@ -26,6 +26,9 @@ def not_found_error(error):
 
 @app.errorhandler(500)
 def internal_error(error):
+    import traceback
+    print("[Error 500 Handler Triggered]:")
+    traceback.print_exc()
     return jsonify({"status": "error", "message": "Internal server error occurred."}), 500
 
 
@@ -66,7 +69,7 @@ def create_fallback_model():
     return clf, vec
 
 
-# Load ML artifacts safely with automatic fallback
+# Load ML artifacts safely with automatic fallback and dry-run validation
 MODEL_LOAD_ERROR = None
 MODEL_SOURCE = "pickle"
 try:
@@ -74,10 +77,18 @@ try:
         model = pickle.load(model_file)
     with VECTORIZER_PATH.open("rb") as vectorizer_file:
         vectorizer = pickle.load(vectorizer_file)
+
+    # Dry-run validation test to ensure vectorizer and model work without errors
+    _test_feat = vectorizer.transform(["i am very happy and excited"])
+    _test_prob = model.predict_proba(_test_feat)[0]
+    if len(_test_prob) != len(EMOTIONS):
+        raise ValueError(f"Model returned {len(_test_prob)} probabilities, expected {len(EMOTIONS)}")
+
     MODEL_LOADED = True
+    print("[Info] Primary pickled ML model loaded and validated successfully.")
 except Exception as e:
     MODEL_LOAD_ERROR = str(e)
-    print(f"[Warning] Failed to load pickled model files: {e}. Initializing fallback model...")
+    print(f"[Warning] Failed to load/validate pickled model files: {e}. Initializing fallback model...")
     try:
         model, vectorizer = create_fallback_model()
         MODEL_LOADED = True
@@ -199,9 +210,20 @@ def predict():
     if not cleaned:
         return jsonify({"status": "error", "message": "Text contains no valid words after cleaning."}), 400
 
-    # Vectorize and predict probabilities
-    features = vectorizer.transform([cleaned])
-    probabilities = model.predict_proba(features)[0]
+    # Vectorize and predict probabilities with fallback protection
+    try:
+        features = vectorizer.transform([cleaned])
+        probabilities = model.predict_proba(features)[0]
+    except Exception as pred_err:
+        print(f"[Warning] Prediction failed on primary model ({MODEL_SOURCE}): {pred_err}. Retrying with fallback model...")
+        try:
+            fb_model, fb_vectorizer = create_fallback_model()
+            features = fb_vectorizer.transform([cleaned])
+            probabilities = fb_model.predict_proba(features)[0]
+        except Exception as fb_err:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"status": "error", "message": f"Prediction model execution failed: {str(pred_err)}"}), 500
 
     prob_dict = {EMOTIONS[i]: float(probabilities[i]) for i in range(len(EMOTIONS))}
     
