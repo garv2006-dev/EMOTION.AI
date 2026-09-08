@@ -16,5 +16,5 @@ EXPOSE 5000
 ENV PORT=5000
 ENV PYTHONUNBUFFERED=1
 
-# Run Flask application
-CMD ["python", "app.py"]
+# Run Flask application using Gunicorn WSGI server
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 app:app"]

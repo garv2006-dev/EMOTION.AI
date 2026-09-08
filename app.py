@@ -15,7 +15,42 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "logisctic_model.pkl"
 VECTORIZER_PATH = BASE_DIR / "tfidf_vectorizer.pkl"
 
-# Load ML artifacts safely
+EMOTIONS = ["anger", "fear", "joy", "love", "sadness", "surprise"]
+
+
+def create_fallback_model():
+    """Train a baseline TF-IDF + Logistic Regression model if pickle files fail to load."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+
+    training_data = [
+        ("i am so happy delighted excited joyful ecstatic thrilled glad cheerful", "joy"),
+        ("this is wonderful fantastic amazing awesome great delightful news", "joy"),
+        ("i cherish every single moment with you my love affection passion", "love"),
+        ("i love you so much adoration warmth tenderness fondness heart caring", "love"),
+        ("i am terrified scared afraid nervous frightened anxious horrified panic fear", "fear"),
+        ("this scary dangerous situation gives me anxiety panic fear dread horror", "fear"),
+        ("i am feeling hopeless lonely depressed extremely sad gloomy heartbroken sorrowful", "sadness"),
+        ("crying unhappy heartbroken disappointed sorrowful grief miserable depressed", "sadness"),
+        ("i am furious angry outraged mad annoyed enraged hostile bitter", "anger"),
+        ("i hate this disgusting lie disrespect betrayal insult furious anger rage", "anger"),
+        ("wow astonishing incredible unexpected surprising shock amazed stunned bewildered", "surprise"),
+        ("i was totally amazed and astonished by this unexpected news surprise", "surprise")
+    ]
+    texts, labels = zip(*training_data)
+    label_to_idx = {emo: i for i, emo in enumerate(EMOTIONS)}
+    y = [label_to_idx[l] for l in labels]
+
+    vec = TfidfVectorizer()
+    X = vec.fit_transform(texts)
+    clf = LogisticRegression(max_iter=200)
+    clf.fit(X, y)
+    return clf, vec
+
+
+# Load ML artifacts safely with automatic fallback
+MODEL_LOAD_ERROR = None
+MODEL_SOURCE = "pickle"
 try:
     with MODEL_PATH.open("rb") as model_file:
         model = pickle.load(model_file)
@@ -23,10 +58,19 @@ try:
         vectorizer = pickle.load(vectorizer_file)
     MODEL_LOADED = True
 except Exception as e:
-    model = None
-    vectorizer = None
-    MODEL_LOADED = False
-    print(f"[Warning] Failed to load model files: {e}")
+    MODEL_LOAD_ERROR = str(e)
+    print(f"[Warning] Failed to load pickled model files: {e}. Initializing fallback model...")
+    try:
+        model, vectorizer = create_fallback_model()
+        MODEL_LOADED = True
+        MODEL_SOURCE = "fallback"
+        print("[Info] Fallback ML model initialized successfully.")
+    except Exception as fallback_err:
+        model = None
+        vectorizer = None
+        MODEL_LOADED = False
+        MODEL_SOURCE = "none"
+        print(f"[Error] Failed to initialize fallback model: {fallback_err}")
 
 EMOTION_META = {
     "anger": {
@@ -105,6 +149,8 @@ def health():
     return jsonify({
         "status": "healthy" if MODEL_LOADED else "degraded",
         "model_loaded": MODEL_LOADED,
+        "model_source": MODEL_SOURCE,
+        "model_error": MODEL_LOAD_ERROR,
         "emotions_supported": len(EMOTIONS)
     })
 
@@ -122,7 +168,8 @@ def examples():
 def predict():
     """Predict emotional probabilities for provided text."""
     if not MODEL_LOADED:
-        return jsonify({"status": "error", "message": "ML model is not loaded"}), 500
+        err_msg = f"ML model is not loaded. Details: {MODEL_LOAD_ERROR or 'Unknown error'}"
+        return jsonify({"status": "error", "message": err_msg}), 500
 
     data = request.get_json(silent=True) or {}
     text = data.get("text", "").strip()
