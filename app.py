@@ -11,6 +11,24 @@ warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 app = Flask(__name__)
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
+
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({"status": "error", "message": "Endpoint not found."}), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"status": "error", "message": "Internal server error occurred."}), 500
+
+
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "logisctic_model.pkl"
 VECTORIZER_PATH = BASE_DIR / "tfidf_vectorizer.pkl"

@@ -28,9 +28,9 @@
                 </div>
             </div>
             <div class="nav-actions">
-                <div class="status-pill" id="statusPill">
+                <div class="status-pill connecting" id="statusPill" title="Click to re-check backend status">
                     <span class="status-dot"></span>
-                    <span id="statusText">Model Connected</span>
+                    <span id="statusText">Connecting...</span>
                 </div>
             </div>
         </header>
@@ -87,7 +87,15 @@
                 <!-- Loading Skeleton state -->
                 <div class="loading-state hidden" id="loadingState">
                     <div class="spinner"></div>
-                    <p>Processing text through TF-IDF Vectorizer & Logistic Model...</p>
+                    <p id="loadingMsg">Processing text through TF-IDF Vectorizer & Logistic Model...</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-state hidden" id="errorState">
+                    <div class="error-icon">⚠️</div>
+                    <h3 id="errorTitle">Connection Issue</h3>
+                    <p id="errorMessage">Failed to connect to the backend server. Please check backend status.</p>
+                    <button class="retry-btn" id="retryBtn">🔄 Retry</button>
                 </div>
 
                 <!-- Actual Results Section -->

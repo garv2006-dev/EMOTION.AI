@@ -17,4 +17,4 @@ ENV PORT=5000
 ENV PYTHONUNBUFFERED=1
 
 # Run Flask application using Gunicorn WSGI server
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 --keep-alive 5 app:app"]

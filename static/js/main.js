@@ -11,9 +11,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const samplesContainer = document.getElementById('samplesContainer');
     const ambientGlow = document.getElementById('ambientGlow');
     
+    // Status Pill
+    const statusPill = document.getElementById('statusPill');
+    const statusText = document.getElementById('statusText');
+
     // States
     const emptyState = document.getElementById('emptyState');
     const loadingState = document.getElementById('loadingState');
+    const loadingMsg = document.getElementById('loadingMsg');
+    const errorState = document.getElementById('errorState');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorMessage = document.getElementById('errorMessage');
+    const retryBtn = document.getElementById('retryBtn');
     const resultsContent = document.getElementById('resultsContent');
 
     // Hero Top Display
@@ -27,22 +36,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const barsContainer = document.getElementById('barsContainer');
 
     // Initial Setup
+    checkBackendHealth();
     loadSamplePrompts();
 
-    // 1. Character Counter
+    // 1. Backend Health Monitoring
+    statusPill.addEventListener('click', checkBackendHealth);
+
+    async function checkBackendHealth() {
+        updateStatusPill('connecting', 'Connecting...');
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const res = await fetch('/api/health', { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.model_loaded) {
+                    updateStatusPill('connected', data.model_source === 'pickle' ? 'Model Connected' : 'Model (Fallback)');
+                } else {
+                    updateStatusPill('offline', 'Model Error');
+                }
+            } else {
+                updateStatusPill('offline', 'Backend Degraded');
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                updateStatusPill('waking', 'Waking Server...');
+                setTimeout(async () => {
+                    try {
+                        const res2 = await fetch('/api/health');
+                        if (res2.ok) updateStatusPill('connected', 'Model Connected');
+                        else updateStatusPill('offline', 'Backend Offline');
+                    } catch (e) {
+                        updateStatusPill('offline', 'Backend Offline');
+                    }
+                }, 4000);
+            } else {
+                updateStatusPill('offline', 'Backend Offline');
+            }
+        }
+    }
+
+    function updateStatusPill(state, text) {
+        statusPill.className = `status-pill ${state}`;
+        statusText.textContent = text;
+    }
+
+    // 2. Character Counter
     textInput.addEventListener('input', () => {
         const len = textInput.value.length;
         charCounter.textContent = `${len} / 500`;
     });
 
-    // 2. Clear Button
+    // 3. Clear Button
     clearBtn.addEventListener('click', () => {
         textInput.value = '';
         charCounter.textContent = '0 / 500';
         textInput.focus();
     });
 
-    // 3. Submit Emotion Analysis
+    // 4. Retry Button
+    retryBtn.addEventListener('click', () => {
+        performAnalysis();
+    });
+
+    // 5. Submit Emotion Analysis
     analyzeBtn.addEventListener('click', performAnalysis);
     textInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.ctrlKey) {
@@ -50,44 +110,88 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function showState(activeState) {
+        emptyState.classList.add('hidden');
+        loadingState.classList.add('hidden');
+        errorState.classList.add('hidden');
+        resultsContent.classList.add('hidden');
+
+        if (activeState) {
+            activeState.classList.remove('hidden');
+        }
+    }
+
+    function showError(title, message) {
+        errorTitle.textContent = title;
+        errorMessage.textContent = message;
+        showState(errorState);
+    }
+
     async function performAnalysis() {
         const text = textInput.value.trim();
         if (!text) {
-            alert('Please enter a sentence or select a sample prompt to analyze!');
+            showError('Empty Input', 'Please enter a sentence or select a sample prompt chip to analyze!');
             return;
         }
 
         // Show Loading
-        emptyState.classList.add('hidden');
-        resultsContent.classList.add('hidden');
-        loadingState.classList.remove('hidden');
+        loadingMsg.textContent = 'Processing text through TF-IDF Vectorizer & Logistic Model...';
+        showState(loadingState);
 
-        try {
-            const response = await fetch('/api/predict', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            });
+        const maxRetries = 2;
+        let attempt = 0;
 
-            const data = await response.json();
-            loadingState.classList.add('hidden');
+        while (attempt <= maxRetries) {
+            try {
+                attempt++;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 18000);
 
-            if (data.status === 'success') {
-                displayResults(data);
-            } else {
-                alert(data.message || 'An error occurred during analysis.');
-                emptyState.classList.remove('hidden');
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error(`Server returned HTML error (HTTP ${response.status}). Render instance may be spinning up.`);
+                }
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    displayResults(data);
+                    updateStatusPill('connected', 'Model Connected');
+                    return;
+                } else {
+                    showError('Prediction Error', data.message || 'An error occurred during analysis.');
+                    return;
+                }
+            } catch (error) {
+                console.error(`API Error (Attempt ${attempt}):`, error);
+
+                if (attempt <= maxRetries) {
+                    loadingMsg.textContent = 'Backend is waking up on Render... Retrying analysis...';
+                    updateStatusPill('waking', 'Waking Server...');
+                    await new Promise(r => setTimeout(r, 3000));
+                } else {
+                    updateStatusPill('offline', 'Backend Offline');
+                    showError(
+                        'Connection Error',
+                        'Failed to connect to Flask backend. If hosting on Render free tier, the server may be spinning up from sleep. Please click retry in a few seconds.'
+                    );
+                }
             }
-        } catch (error) {
-            loadingState.classList.add('hidden');
-            emptyState.classList.remove('hidden');
-            alert('Failed to connect to the Flask server. Please check backend status.');
-            console.error('API Error:', error);
         }
     }
 
     // Render Analysis Output
     function displayResults(data) {
+        showState(resultsContent);
+
         const top = data.top_emotion;
 
         // Ambient glow background change
@@ -130,11 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 50 + idx * 80);
         });
-
-        resultsContent.classList.remove('hidden');
     }
 
-    // 4. Sample Prompts Fetch
+    // 6. Sample Prompts Fetch
     async function loadSamplePrompts() {
         try {
             const res = await fetch('/api/examples');

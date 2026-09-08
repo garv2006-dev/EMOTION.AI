@@ -140,20 +140,57 @@ body {
     align-items: center;
     gap: 8px;
     padding: 6px 14px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.25);
     border-radius: 50px;
     font-size: 13px;
-    color: #10b981;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.status-pill.connected {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+.status-pill.connected .status-dot {
+    background-color: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+.status-pill.connecting {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #f59e0b;
+}
+.status-pill.connecting .status-dot {
+    background-color: #f59e0b;
+    box-shadow: 0 0 10px #f59e0b;
+}
+
+.status-pill.waking {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    color: #818cf8;
+}
+.status-pill.waking .status-dot {
+    background-color: #818cf8;
+    box-shadow: 0 0 10px #818cf8;
+}
+
+.status-pill.offline {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+.status-pill.offline .status-dot {
+    background-color: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
 }
 
 .status-dot {
     width: 8px;
     height: 8px;
-    background-color: #10b981;
     border-radius: 50%;
-    box-shadow: 0 0 10px #10b981;
     animation: blink 2s infinite;
 }
 
@@ -409,6 +446,58 @@ textarea:focus {
     border-top-color: #6366f1;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+}
+
+/* Error State */
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 380px;
+    text-align: center;
+    padding: 24px;
+    gap: 12px;
+}
+
+.error-icon {
+    font-size: 48px;
+    filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
+    animation: float 3s ease-in-out infinite;
+}
+
+.error-state h3 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    color: #f87171;
+}
+
+.error-state p {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 420px;
+    line-height: 1.5;
+}
+
+.retry-btn {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-main);
+    padding: 10px 22px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-2px);
 }
 
 /* Hero Top Emotion Display */
