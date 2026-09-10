@@ -1,5 +1,5 @@
 /**
- * Emotion AI - Frontend Application Logic
+ * Emotion AI - Frontend Application Logic & Responsive Interactivity
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('errorMessage');
     const retryBtn = document.getElementById('retryBtn');
     const resultsContent = document.getElementById('resultsContent');
+    const resultsCard = document.getElementById('resultsCard');
 
     // Hero Top Display
     const heroEmoji = document.getElementById('heroEmoji');
@@ -32,8 +33,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroConfidenceVal = document.getElementById('heroConfidenceVal');
     const topEmotionBanner = document.getElementById('topEmotionBanner');
     
-    // Bars
+    // Bars Container
     const barsContainer = document.getElementById('barsContainer');
+
+    // Preprocessing Token Insights Accordion
+    const preprocHeader = document.getElementById('preprocHeader');
+    const preprocBody = document.getElementById('preprocBody');
+    const preprocToggleIcon = document.getElementById('preprocToggleIcon');
+    const tokenOriginalCount = document.getElementById('tokenOriginalCount');
+    const tokenOriginalText = document.getElementById('tokenOriginalText');
+    const tokenCleanedText = document.getElementById('tokenCleanedText');
+
+    // History Log
+    const historyTableBody = document.getElementById('historyTableBody');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    let predictionHistory = JSON.parse(localStorage.getItem('emotion_ai_history') || '[]');
 
     // Initial Setup
     checkBackendHealth();
@@ -54,12 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 if (data.model_loaded) {
-                    updateStatusPill('connected', data.model_source === 'pickle' ? 'Model Connected' : 'Model (Fallback)');
+                    const isMobile = window.innerWidth < 480;
+                    const label = data.model_source === 'pickle' 
+                        ? (isMobile ? 'Connected' : 'Model Connected') 
+                        : (isMobile ? 'Fallback' : 'Model (Fallback)');
+                    updateStatusPill('connected', label);
                 } else {
                     updateStatusPill('offline', 'Model Error');
                 }
             } else {
-                updateStatusPill('offline', 'Backend Degraded');
+                updateStatusPill('offline', 'Degraded');
             }
         } catch (err) {
             if (err.name === 'AbortError') {
@@ -67,14 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(async () => {
                     try {
                         const res2 = await fetch('/api/health');
-                        if (res2.ok) updateStatusPill('connected', 'Model Connected');
-                        else updateStatusPill('offline', 'Backend Offline');
+                        if (res2.ok) updateStatusPill('connected', window.innerWidth < 480 ? 'Connected' : 'Model Connected');
+                        else updateStatusPill('offline', 'Offline');
                     } catch (e) {
-                        updateStatusPill('offline', 'Backend Offline');
+                        updateStatusPill('offline', 'Offline');
                     }
                 }, 4000);
             } else {
-                updateStatusPill('offline', 'Backend Offline');
+                updateStatusPill('offline', 'Offline');
             }
         }
     }
@@ -102,7 +120,21 @@ document.addEventListener('DOMContentLoaded', () => {
         performAnalysis();
     });
 
-    // 5. Submit Emotion Analysis
+    // 5. Preprocessing Drawer Accordion Toggle
+    if (preprocHeader) {
+        preprocHeader.addEventListener('click', () => {
+            const isHidden = preprocBody.classList.contains('hidden');
+            if (isHidden) {
+                preprocBody.classList.remove('hidden');
+                preprocToggleIcon.textContent = '▲';
+            } else {
+                preprocBody.classList.add('hidden');
+                preprocToggleIcon.textContent = '▼';
+            }
+        });
+    }
+
+    // 6. Submit Emotion Analysis
     analyzeBtn.addEventListener('click', performAnalysis);
     textInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.ctrlKey) {
@@ -137,6 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show Loading
         loadingMsg.textContent = 'Processing text through TF-IDF Vectorizer & Logistic Model...';
         showState(loadingState);
+
+        // Smooth scroll to results on mobile/small screens if stacked
+        if (window.innerWidth < 890) {
+            resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
 
         const maxRetries = 2;
         let attempt = 0;
@@ -218,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span>${emo.emoji}</span>
                         <span style="color: ${emo.color}; font-weight: 600;">${emo.name}</span>
                     </span>
-                    <span class="bar-val">${emo.percentage}%</span>
+                    <span class="bar-val" style="font-weight: 600;">${emo.percentage}%</span>
                 </div>
                 <div class="bar-track">
                     <div class="bar-fill" id="barFill_${idx}" style="background: ${emo.color}; box-shadow: 0 0 10px ${emo.color};"></div>
@@ -234,9 +271,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 50 + idx * 80);
         });
+
+        // NLP Token Insights
+        if (data.word_tokens) {
+            tokenOriginalCount.textContent = data.word_count || 0;
+            tokenOriginalText.textContent = data.input_text || '-';
+            tokenCleanedText.textContent = (data.word_tokens.cleaned || []).join(' ') || '(no valid word tokens remaining)';
+        }
     }
 
-    // 6. Sample Prompts Fetch
+    // 7. Sample Prompts Fetch
     async function loadSamplePrompts() {
         try {
             const res = await fetch('/api/examples');
@@ -261,3 +305,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+

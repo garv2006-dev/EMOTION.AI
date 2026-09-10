@@ -124,13 +124,29 @@
                         <div class="bars-container" id="barsContainer">
                             <!-- Dynamically populated bars -->
                         </div>
-                    </div>                </div>
+                    </div>
+
+                    <!-- Preprocessing Token Accordion Drawer -->
+                    <div class="preproc-section">
+                        <div class="preproc-header" id="preprocHeader">
+                            <span>🔍 NLP Token Insights</span>
+                            <span id="preprocToggleIcon">▼</span>
+                        </div>
+                        <div class="preproc-body hidden" id="preprocBody">
+                            <div>Original Word Count: <strong id="tokenOriginalCount">0</strong> words</div>
+                            <div style="margin-top: 6px;">Original Text:</div>
+                            <div class="token-quote" id="tokenOriginalText">-</div>
+                            <div style="margin-top: 8px;">Preprocessed & Normalized Tokens:</div>
+                            <div class="token-quote cleaned" id="tokenCleanedText">-</div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Emotion Classifier ML Project &bull; Built with <strong>Flask</strong>, <strong>scikit-learn</strong>, and <strong>Vanilla CSS Glassmorphism</strong>.</p>
+            <p>Emotion Classifier ML Project &bull; Built with <strong>Flask</strong>, <strong>scikit-learn</strong>, and <strong>Responsive Glassmorphism</strong>.</p>
         </footer>
     </div>
 
@@ -138,3 +154,5 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
+
+
